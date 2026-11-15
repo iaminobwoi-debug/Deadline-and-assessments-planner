@@ -1,0 +1,6 @@
+{
+  "name": "ScholarPace",
+  "description": "Academic deadline and assessment planner for students, lecturers, and programme coordinators with course filtering, personal deadline planning, and urgency summaries.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

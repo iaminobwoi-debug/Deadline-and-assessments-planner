@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">ScholarPace</string>
+    <string name="sign_in_title">ScholarPace</string>
+    <string name="sign_in_subtitle">Academic Deadline &amp; Assessment Planner for students, lecturers, and programme coordinators.</string>
+    <string name="sign_in_button">Sign in with Google</string>
+    <string name="sign_in_note">Your personal assessment plan syncs securely to your Google account.</string>
+    <string name="nav_overview">Overview</string>
+    <string name="nav_planner">Planner</string>
+    <string name="action_add_deadline">Add Deadline</string>
+    <string name="action_load_sample_plan">Load Sample Plan</string>
+    <string name="action_sign_out">Sign out</string>
+    <string name="search_placeholder">Search by title, course code, or notes…</string>
+    <string name="empty_planner_title">No matching assessments</string>
+    <string name="empty_planner_body">Adjust your search or filters, or add a new deadline to your personal plan.</string>
+    <string name="error_retry">Retry</string>
+</resources>

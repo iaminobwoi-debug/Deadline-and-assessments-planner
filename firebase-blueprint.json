@@ -1,0 +1,141 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Personal academic planner profile and sample plan seed marker for an authenticated user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name of the student, lecturer, or programme coordinator."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user."
+        },
+        "preferredRole": {
+          "type": "string",
+          "enum": ["STUDENT", "LECTURER", "COORDINATOR"],
+          "description": "Active academic role perspective."
+        },
+        "seededSamplePlan": {
+          "type": "boolean",
+          "description": "Whether initial sample academic deadlines have been seeded for this user."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the profile was created (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the profile was last updated (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": ["userId", "preferredRole", "seededSamplePlan", "createdAt", "updatedAt"]
+    },
+    "AssessmentDeadline": {
+      "title": "AssessmentDeadline",
+      "description": "An academic assessment deadline (assignment, test, presentation, or examination) in a user's personal plan.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the assignment, test, presentation, or examination."
+        },
+        "courseCode": {
+          "type": "string",
+          "description": "Course code such as CS301 or MATH204."
+        },
+        "courseName": {
+          "type": "string",
+          "description": "Full course or module title."
+        },
+        "assessmentType": {
+          "type": "string",
+          "enum": ["ASSIGNMENT", "TEST", "PRESENTATION", "EXAMINATION"],
+          "description": "Category of academic assessment."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["UPCOMING", "IN_PROGRESS", "COMPLETED"],
+          "description": "Current completion workflow status."
+        },
+        "dueDateEpochDay": {
+          "type": "integer",
+          "description": "UTC epoch day representing the assessment due date."
+        },
+        "dueTimeLabel": {
+          "type": "string",
+          "description": "Formatted 24h due time label such as 23:59 or 14:00."
+        },
+        "weightPercent": {
+          "type": "integer",
+          "description": "Percentage weighting toward final course grade (0-100)."
+        },
+        "roleContext": {
+          "type": "string",
+          "enum": ["STUDENT", "LECTURER", "COORDINATOR"],
+          "description": "Academic role context for the deadline item."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional submission guidelines, room number, or preparation notes."
+        },
+        "isSampleSeed": {
+          "type": "boolean",
+          "description": "Indicates whether this item originated from the sample plan."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "courseCode",
+        "courseName",
+        "assessmentType",
+        "status",
+        "dueDateEpochDay",
+        "dueTimeLabel",
+        "weightPercent",
+        "roleContext",
+        "notes",
+        "isSampleSeed",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "Private user profile and planner role preferences scoped by authenticated UID."
+    },
+    "/users/{userId}/assessments/{assessmentId}": {
+      "schema": {
+        "$ref": "#/entities/AssessmentDeadline"
+      },
+      "description": "User-owned academic deadlines and assessments in their personal planner."
+    }
+  }
+}

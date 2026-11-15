@@ -1,0 +1,158 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidRole(role) {
+      return role in ['STUDENT', 'LECTURER', 'COORDINATOR'];
+    }
+
+    function isValidAssessmentType(t) {
+      return t in ['ASSIGNMENT', 'TEST', 'PRESENTATION', 'EXAMINATION'];
+    }
+
+    function isValidStatus(s) {
+      return s in ['UPCOMING', 'IN_PROGRESS', 'COMPLETED'];
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 150)) &&
+             data.preferredRole is string &&
+             isValidRole(data.preferredRole) &&
+             data.seededSamplePlan is bool;
+    }
+
+    function isValidAssessment(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.title is string &&
+             data.title.size() >= 1 &&
+             data.title.size() <= 140 &&
+             data.courseCode is string &&
+             data.courseCode.size() >= 1 &&
+             data.courseCode.size() <= 24 &&
+             data.courseName is string &&
+             data.courseName.size() <= 100 &&
+             data.assessmentType is string &&
+             isValidAssessmentType(data.assessmentType) &&
+             data.status is string &&
+             isValidStatus(data.status) &&
+             data.dueDateEpochDay is int &&
+             data.dueDateEpochDay >= 0 &&
+             data.dueDateEpochDay <= 100000 &&
+             data.dueTimeLabel is string &&
+             data.dueTimeLabel.size() >= 1 &&
+             data.dueTimeLabel.size() <= 16 &&
+             data.weightPercent is int &&
+             data.weightPercent >= 0 &&
+             data.weightPercent <= 100 &&
+             data.roleContext is string &&
+             isValidRole(data.roleContext) &&
+             data.notes is string &&
+             data.notes.size() <= 500 &&
+             data.isSampleSeed is bool;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
+      allow list: if isSignedIn() && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       isValidId(userId) &&
+                       incoming().keys().hasAll(['userId', 'preferredRole', 'seededSamplePlan', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'displayName', 'email', 'preferredRole', 'seededSamplePlan', 'createdAt', 'updatedAt']) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       isValidUserProfile(incoming(), userId);
+
+      allow update: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       isValidId(userId) &&
+                       isValidUserProfile(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email', 'preferredRole', 'seededSamplePlan', 'updatedAt']);
+
+      allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
+
+      match /assessments/{assessmentId} {
+        allow get: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidId(assessmentId);
+        allow list: if isSignedIn() && request.auth.uid == userId;
+
+        allow create: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         isValidId(userId) &&
+                         isValidId(assessmentId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'title', 'courseCode', 'courseName', 'assessmentType',
+                           'status', 'dueDateEpochDay', 'dueTimeLabel', 'weightPercent',
+                           'roleContext', 'notes', 'isSampleSeed', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'title', 'courseCode', 'courseName', 'assessmentType',
+                           'status', 'dueDateEpochDay', 'dueTimeLabel', 'weightPercent',
+                           'roleContext', 'notes', 'isSampleSeed', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time &&
+                         incoming().updatedAt is timestamp &&
+                         incoming().updatedAt <= request.time &&
+                         isValidAssessment(incoming(), userId);
+
+        allow update: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         isValidId(userId) &&
+                         isValidId(assessmentId) &&
+                         isValidAssessment(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().isSampleSeed == existing().isSampleSeed &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().updatedAt is timestamp &&
+                         incoming().updatedAt <= request.time &&
+                         (
+                           (existing().status != 'COMPLETED' &&
+                             incoming().diff(existing()).affectedKeys().hasOnly([
+                               'title', 'courseCode', 'courseName', 'assessmentType',
+                               'status', 'dueDateEpochDay', 'dueTimeLabel', 'weightPercent',
+                               'roleContext', 'notes', 'updatedAt'
+                             ])) ||
+                           (existing().status == 'COMPLETED' &&
+                             incoming().status in ['UPCOMING', 'IN_PROGRESS'] &&
+                             incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+                         );
+
+        allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidId(assessmentId);
+      }
+    }
+  }
+}
